@@ -260,3 +260,1289 @@ variable "max_receive_count" {
     error_message = "Max receive count must be between 1 and 1000."
   }
 } 
+
+# ==============================================================================
+# Enhanced Lambda Function Configuration Variables
+# ==============================================================================
+
+variable "lambda_functions" {
+  description = "Map of Lambda functions to create"
+  type = map(object({
+    name = string
+    description = optional(string, null)
+    runtime = optional(string, "python3.11")
+    handler = optional(string, "index.handler")
+    timeout = optional(number, 30)
+    memory_size = optional(number, 128)
+    
+    # Source code configuration
+    source_path = optional(string, null)
+    source_code_hash = optional(string, null)
+    s3_bucket = optional(string, null)
+    s3_key = optional(string, null)
+    s3_object_version = optional(string, null)
+    image_uri = optional(string, null)
+    
+    # Image configuration
+    image_config = optional(object({
+      command = optional(list(string), [])
+      entry_point = optional(list(string), [])
+      working_directory = optional(string, null)
+    }), {})
+    
+    # VPC configuration
+    vpc_config = optional(object({
+      subnet_ids = list(string)
+      security_group_ids = list(string)
+    }), {})
+    
+    # File system configuration
+    file_system_config = optional(object({
+      arn = string
+      local_mount_path = string
+    }), {})
+    
+    # Dead letter configuration
+    dead_letter_config = optional(object({
+      target_arn = string
+    }), {})
+    
+    # Tracing configuration
+    tracing_config = optional(object({
+      mode = optional(string, "PassThrough")
+    }), {})
+    
+    # KMS configuration
+    kms_key_arn = optional(string, null)
+    
+    # Layers
+    layers = optional(list(string), [])
+    
+    # Runtime management
+    runtime_management_config = optional(object({
+      update_runtime_on = optional(string, "Auto")
+      runtime_version_arn = optional(string, null)
+    }), {})
+    
+    # Snap start
+    snap_start = optional(object({
+      apply_on = string
+    }), {})
+    
+    # Ephemeral storage
+    ephemeral_storage = optional(object({
+      size = optional(number, 512)
+    }), {})
+    
+    # Function URL
+    function_url = optional(object({
+      authorization_type = optional(string, "NONE")
+      cors = optional(object({
+        allow_credentials = optional(bool, null)
+        allow_origins = optional(list(string), [])
+        allow_methods = optional(list(string), [])
+        allow_headers = optional(list(string), [])
+        expose_headers = optional(list(string), [])
+        max_age = optional(number, null)
+      }), {})
+    }), {})
+    
+    # Event source mappings
+    event_source_mappings = optional(list(object({
+      event_source_arn = string
+      function_name = optional(string, null)
+      enabled = optional(bool, true)
+      batch_size = optional(number, 100)
+      maximum_batching_window_in_seconds = optional(number, 0)
+      parallelization_factor = optional(number, 1)
+      starting_position = optional(string, "LATEST")
+      starting_position_timestamp = optional(string, null)
+      destination_config = optional(object({
+        on_failure = optional(object({
+          destination_arn = string
+        }), {})
+        on_success = optional(object({
+          destination_arn = string
+        }), {})
+      }), {})
+      filter_criteria = optional(object({
+        filters = optional(list(object({
+          pattern = string
+        })), [])
+      }), {})
+      function_response_types = optional(list(string), [])
+      maximum_record_age_in_seconds = optional(number, null)
+      maximum_retry_attempts = optional(number, null)
+      scaling_config = optional(object({
+        maximum_concurrency = optional(number, null)
+      }), {})
+      self_managed_event_source = optional(object({
+        endpoints = map(string)
+      }), {})
+      source_access_configurations = optional(list(object({
+        type = string
+        uri = string
+      })), [])
+      tumbling_window_in_seconds = optional(number, null)
+    })), [])
+    
+    # Aliases
+    aliases = optional(list(object({
+      name = string
+      function_version = string
+      description = optional(string, null)
+      routing_config = optional(object({
+        additional_version_weights = optional(map(number), {})
+        additional_version_weights = optional(map(number), {})
+      }), {})
+    })), [])
+    
+    # Provisioned concurrency
+    provisioned_concurrency_configs = optional(list(object({
+      qualifier = string
+      provisioned_concurrent_executions = number
+    })), [])
+    
+    # Code signing
+    code_signing_config = optional(object({
+      description = optional(string, null)
+      allowed_publishers = object({
+        signing_profile_version_arns = optional(list(string), [])
+      })
+      policies = optional(object({
+        untrusted_artifact_on_deployment = string
+      }), {})
+    }), {})
+    
+    # Reserved concurrency
+    reserved_concurrent_executions = optional(number, null)
+    
+    # Publish
+    publish = optional(bool, false)
+    
+    # Version description
+    version_description = optional(string, null)
+    
+    # Environment variables
+    environment_variables = optional(map(string), {})
+    
+    # Tags
+    tags = optional(map(string), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Configuration Variables
+# ==============================================================================
+
+variable "s3_buckets" {
+  description = "Map of S3 buckets to create"
+  type = map(object({
+    name = string
+    force_destroy = optional(bool, false)
+    
+    # ACL configuration
+    acl = optional(string, null)
+    grant = optional(list(object({
+      id = optional(string, null)
+      type = string
+      uri = optional(string, null)
+      permissions = list(string)
+    })), [])
+    
+    # Versioning
+    versioning = optional(object({
+      enabled = optional(bool, false)
+      mfa_delete = optional(bool, false)
+    }), {})
+    
+    # Server-side encryption
+    server_side_encryption_configuration = optional(object({
+      rule = object({
+        apply_server_side_encryption_by_default = object({
+          sse_algorithm = string
+          kms_master_key_id = optional(string, null)
+        })
+        bucket_key_enabled = optional(bool, null)
+      })
+    }), {})
+    
+    # Object lifecycle
+    lifecycle_rule = optional(list(object({
+      id = optional(string, null)
+      prefix = optional(string, null)
+      tags = optional(map(string), {})
+      enabled = optional(bool, true)
+      
+      abort_incomplete_multipart_upload = optional(object({
+        days_after_initiation = number
+      }), {})
+      
+      expiration = optional(object({
+        date = optional(string, null)
+        days = optional(number, null)
+        expired_object_delete_marker = optional(bool, null)
+      }), {})
+      
+      noncurrent_version_expiration = optional(object({
+        noncurrent_days = number
+        newer_noncurrent_versions = optional(number, null)
+      }), {})
+      
+      noncurrent_version_transition = optional(list(object({
+        noncurrent_days = number
+        storage_class = string
+        newer_noncurrent_versions = optional(number, null)
+      })), [])
+      
+      transition = optional(list(object({
+        date = optional(string, null)
+        days = optional(number, null)
+        storage_class = string
+      })), [])
+      
+      object_size_greater_than = optional(number, null)
+      object_size_less_than = optional(number, null)
+    })), [])
+    
+    # CORS configuration
+    cors_rule = optional(list(object({
+      allowed_headers = optional(list(string), [])
+      allowed_methods = list(string)
+      allowed_origins = list(string)
+      expose_headers = optional(list(string), [])
+      max_age_seconds = optional(number, null)
+    })), [])
+    
+    # Website configuration
+    website = optional(object({
+      index_document = optional(string, null)
+      error_document = optional(string, null)
+      redirect_all_requests_to = optional(string, null)
+      routing_rules = optional(string, null)
+    }), {})
+    
+    # Object ownership
+    object_ownership = optional(object({
+      object_ownership = string
+      rule = optional(object({
+        object_ownership = string
+      }), {})
+    }), {})
+    
+    # Public access block
+    block_public_acls = optional(bool, true)
+    block_public_policy = optional(bool, true)
+    ignore_public_acls = optional(bool, true)
+    restrict_public_buckets = optional(bool, true)
+    
+    # Bucket ownership controls
+    bucket_ownership_controls = optional(object({
+      rule = object({
+        object_ownership = string
+      })
+    }), {})
+    
+    # Intelligent tiering
+    intelligent_tiering = optional(list(object({
+      id = string
+      status = optional(string, "Enabled")
+      tiering = list(object({
+        access_tier = string
+        days = number
+      }))
+    })), [])
+    
+    # Metrics
+    metric_configuration = optional(list(object({
+      id = string
+      filter = optional(object({
+        prefix = optional(string, null)
+        tags = optional(map(string), {})
+      }), {})
+    })), [])
+    
+    # Inventory
+    inventory = optional(list(object({
+      name = string
+      enabled = optional(bool, true)
+      included_object_versions = optional(string, "Current")
+      schedule = object({
+        frequency = string
+      })
+      destination = object({
+        bucket = object({
+          format = string
+          bucket_arn = string
+          account_id = optional(string, null)
+          prefix = optional(string, null)
+          encryption = optional(object({
+            sse_kms = optional(object({
+              key_id = string
+            }), {})
+            sse_s3 = optional(object({}), {})
+          }), {})
+        })
+      })
+      optional_fields = optional(list(string), [])
+    })), [])
+    
+    # Object lock
+    object_lock_configuration = optional(object({
+      object_lock_enabled = optional(string, "Enabled")
+      rule = optional(object({
+        default_retention = object({
+          mode = string
+          days = optional(number, null)
+          years = optional(number, null)
+        })
+      }), {})
+    }), {})
+    
+    # Replication
+    replication_configuration = optional(object({
+      role = string
+      rules = list(object({
+        id = optional(string, null)
+        status = optional(string, "Enabled")
+        priority = optional(number, null)
+        delete_marker_replication = optional(object({
+          status = string
+        }), {})
+        destination = object({
+          bucket = string
+          storage_class = optional(string, null)
+          replica_kms_key_id = optional(string, null)
+          account_id = optional(string, null)
+          access_control_translation = optional(object({
+            owner = string
+          }), {})
+          replication_time = optional(object({
+            status = string
+            minutes = optional(number, null)
+          }), {})
+          metrics = optional(object({
+            status = string
+            minutes = optional(number, null)
+          }), {})
+        })
+        source_selection_criteria = optional(object({
+          sse_kms_encrypted_objects = optional(object({
+            status = string
+          }), {})
+        }), {})
+        filter = optional(object({
+          prefix = optional(string, null)
+          tags = optional(map(string), {})
+        }), {})
+      }))
+    }), {})
+    
+    # Request payer
+    request_payer = optional(string, null)
+    
+    # Tags
+    tags = optional(map(string), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Event Notifications
+# ==============================================================================
+
+variable "s3_event_notifications" {
+  description = "Map of S3 event notifications to create"
+  type = map(object({
+    bucket = string
+    eventbridge = optional(bool, false)
+    lambda = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      lambda_function_arn = string
+    })), [])
+    queue = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      queue_arn = string
+    })), [])
+    topic = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      topic_arn = string
+    })), [])
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Policy
+# ==============================================================================
+
+variable "s3_bucket_policies" {
+  description = "Map of S3 bucket policies to create"
+  type = map(object({
+    bucket = string
+    policy = string
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Public Access Block
+# ==============================================================================
+
+variable "s3_bucket_public_access_blocks" {
+  description = "Map of S3 bucket public access blocks to create"
+  type = map(object({
+    bucket = string
+    block_public_acls = optional(bool, true)
+    block_public_policy = optional(bool, true)
+    ignore_public_acls = optional(bool, true)
+    restrict_public_buckets = optional(bool, true)
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Versioning
+# ==============================================================================
+
+variable "s3_bucket_versionings" {
+  description = "Map of S3 bucket versionings to create"
+  type = map(object({
+    bucket = string
+    enabled = optional(bool, false)
+    mfa_delete = optional(bool, false)
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Server Side Encryption Configuration
+# ==============================================================================
+
+variable "s3_bucket_server_side_encryption_configurations" {
+  description = "Map of S3 bucket server side encryption configurations to create"
+  type = map(object({
+    bucket = string
+    rule = object({
+      apply_server_side_encryption_by_default = object({
+        sse_algorithm = string
+        kms_master_key_id = optional(string, null)
+      })
+      bucket_key_enabled = optional(bool, null)
+    })
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Lifecycle Configuration
+# ==============================================================================
+
+variable "s3_bucket_lifecycle_configurations" {
+  description = "Map of S3 bucket lifecycle configurations to create"
+  type = map(object({
+    bucket = string
+    rule = list(object({
+      id = optional(string, null)
+      prefix = optional(string, null)
+      tags = optional(map(string), {})
+      enabled = optional(bool, true)
+      
+      abort_incomplete_multipart_upload = optional(object({
+        days_after_initiation = number
+      }), {})
+      
+      expiration = optional(object({
+        date = optional(string, null)
+        days = optional(number, null)
+        expired_object_delete_marker = optional(bool, null)
+      }), {})
+      
+      noncurrent_version_expiration = optional(object({
+        noncurrent_days = number
+        newer_noncurrent_versions = optional(number, null)
+      }), {})
+      
+      noncurrent_version_transition = optional(list(object({
+        noncurrent_days = number
+        storage_class = string
+        newer_noncurrent_versions = optional(number, null)
+      })), [])
+      
+      transition = optional(list(object({
+        date = optional(string, null)
+        days = optional(number, null)
+        storage_class = string
+      })), [])
+      
+      object_size_greater_than = optional(number, null)
+      object_size_less_than = optional(number, null)
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket CORS Configuration
+# ==============================================================================
+
+variable "s3_bucket_cors_configurations" {
+  description = "Map of S3 bucket CORS configurations to create"
+  type = map(object({
+    bucket = string
+    cors_rule = list(object({
+      allowed_headers = optional(list(string), [])
+      allowed_methods = list(string)
+      allowed_origins = list(string)
+      expose_headers = optional(list(string), [])
+      max_age_seconds = optional(number, null)
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Website Configuration
+# ==============================================================================
+
+variable "s3_bucket_website_configurations" {
+  description = "Map of S3 bucket website configurations to create"
+  type = map(object({
+    bucket = string
+    index_document = optional(string, null)
+    error_document = optional(string, null)
+    redirect_all_requests_to = optional(string, null)
+    routing_rules = optional(string, null)
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Object Ownership Controls
+# ==============================================================================
+
+variable "s3_bucket_ownership_controls" {
+  description = "Map of S3 bucket ownership controls to create"
+  type = map(object({
+    bucket = string
+    rule = object({
+      object_ownership = string
+    })
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Intelligent Tiering
+# ==============================================================================
+
+variable "s3_bucket_intelligent_tiering_configurations" {
+  description = "Map of S3 bucket intelligent tiering configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    status = optional(string, "Enabled")
+    tiering = list(object({
+      access_tier = string
+      days = number
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Metrics
+# ==============================================================================
+
+variable "s3_bucket_metric_configurations" {
+  description = "Map of S3 bucket metric configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    filter = optional(object({
+      prefix = optional(string, null)
+      tags = optional(map(string), {})
+    }), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Inventory
+# ==============================================================================
+
+variable "s3_bucket_inventory_configurations" {
+  description = "Map of S3 bucket inventory configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    enabled = optional(bool, true)
+    included_object_versions = optional(string, "Current")
+    schedule = object({
+      frequency = string
+    })
+    destination = object({
+      bucket = object({
+        format = string
+        bucket_arn = string
+        account_id = optional(string, null)
+        prefix = optional(string, null)
+        encryption = optional(object({
+          sse_kms = optional(object({
+            key_id = string
+          }), {})
+          sse_s3 = optional(object({}), {})
+        }), {})
+      })
+    })
+    optional_fields = optional(list(string), [])
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Object Lock Configuration
+# ==============================================================================
+
+variable "s3_bucket_object_lock_configurations" {
+  description = "Map of S3 bucket object lock configurations to create"
+  type = map(object({
+    bucket = string
+    object_lock_enabled = optional(string, "Enabled")
+    rule = optional(object({
+      default_retention = object({
+        mode = string
+        days = optional(number, null)
+        years = optional(number, null)
+      })
+    }), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Replication Configuration
+# ==============================================================================
+
+variable "s3_bucket_replication_configurations" {
+  description = "Map of S3 bucket replication configurations to create"
+  type = map(object({
+    bucket = string
+    role = string
+    rules = list(object({
+      id = optional(string, null)
+      status = optional(string, "Enabled")
+      priority = optional(number, null)
+      delete_marker_replication = optional(object({
+        status = string
+      }), {})
+      destination = object({
+        bucket = string
+        storage_class = optional(string, null)
+        replica_kms_key_id = optional(string, null)
+        account_id = optional(string, null)
+        access_control_translation = optional(object({
+          owner = string
+        }), {})
+        replication_time = optional(object({
+          status = string
+          minutes = optional(number, null)
+        }), {})
+        metrics = optional(object({
+          status = string
+          minutes = optional(number, null)
+        }), {})
+      })
+      source_selection_criteria = optional(object({
+        sse_kms_encrypted_objects = optional(object({
+          status = string
+        }), {})
+      }), {})
+      filter = optional(object({
+        prefix = optional(string, null)
+        tags = optional(map(string), {})
+      }), {})
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Request Payer
+# ==============================================================================
+
+variable "s3_bucket_request_payers" {
+  description = "Map of S3 bucket request payers to create"
+  type = map(object({
+    bucket = string
+    request_payer = string
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Accelerate Configuration
+# ==============================================================================
+
+variable "s3_bucket_accelerate_configurations" {
+  description = "Map of S3 bucket accelerate configurations to create"
+  type = map(object({
+    bucket = string
+    status = string
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Analytics Configuration
+# ==============================================================================
+
+variable "s3_bucket_analytics_configurations" {
+  description = "Map of S3 bucket analytics configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    filter = optional(object({
+      prefix = optional(string, null)
+      tags = optional(map(string), {})
+    }), {})
+    storage_class_analysis = optional(object({
+      data_export = optional(object({
+        destination = object({
+          bucket_arn = string
+          bucket_account_id = optional(string, null)
+          format = string
+          prefix = optional(string, null)
+        })
+        output_schema_version = string
+      }), {})
+    }), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Logging
+# ==============================================================================
+
+variable "s3_bucket_loggings" {
+  description = "Map of S3 bucket loggings to create"
+  type = map(object({
+    bucket = string
+    target_bucket = string
+    target_prefix = optional(string, null)
+    target_grant = optional(list(object({
+      grantee = object({
+        id = optional(string, null)
+        type = string
+        uri = optional(string, null)
+        email_address = optional(string, null)
+        display_name = optional(string, null)
+      })
+      permission = string
+    })), [])
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Notification
+# ==============================================================================
+
+variable "s3_bucket_notifications" {
+  description = "Map of S3 bucket notifications to create"
+  type = map(object({
+    bucket = string
+    eventbridge = optional(bool, false)
+    lambda = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      lambda_function_arn = string
+    })), [])
+    queue = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      queue_arn = string
+    })), [])
+    topic = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      topic_arn = string
+    })), [])
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Object
+# ==============================================================================
+
+variable "s3_bucket_objects" {
+  description = "Map of S3 bucket objects to create"
+  type = map(object({
+    bucket = string
+    key = string
+    source = optional(string, null)
+    content = optional(string, null)
+    content_base64 = optional(string, null)
+    content_type = optional(string, null)
+    content_disposition = optional(string, null)
+    content_encoding = optional(string, null)
+    content_language = optional(string, null)
+    website_redirect = optional(string, null)
+    etag = optional(string, null)
+    force_destroy = optional(bool, false)
+    metadata = optional(map(string), {})
+    object_lock_legal_hold_status = optional(string, null)
+    object_lock_mode = optional(string, null)
+    object_lock_retain_until_date = optional(string, null)
+    server_side_encryption = optional(string, null)
+    source_hash = optional(string, null)
+    storage_class = optional(string, null)
+    tags = optional(map(string), {})
+    kms_key_id = optional(string, null)
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Public Access Block
+# ==============================================================================
+
+variable "s3_bucket_public_access_blocks" {
+  description = "Map of S3 bucket public access blocks to create"
+  type = map(object({
+    bucket = string
+    block_public_acls = optional(bool, true)
+    block_public_policy = optional(bool, true)
+    ignore_public_acls = optional(bool, true)
+    restrict_public_buckets = optional(bool, true)
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Versioning
+# ==============================================================================
+
+variable "s3_bucket_versionings" {
+  description = "Map of S3 bucket versionings to create"
+  type = map(object({
+    bucket = string
+    enabled = optional(bool, false)
+    mfa_delete = optional(bool, false)
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Server Side Encryption Configuration
+# ==============================================================================
+
+variable "s3_bucket_server_side_encryption_configurations" {
+  description = "Map of S3 bucket server side encryption configurations to create"
+  type = map(object({
+    bucket = string
+    rule = object({
+      apply_server_side_encryption_by_default = object({
+        sse_algorithm = string
+        kms_master_key_id = optional(string, null)
+      })
+      bucket_key_enabled = optional(bool, null)
+    })
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Lifecycle Configuration
+# ==============================================================================
+
+variable "s3_bucket_lifecycle_configurations" {
+  description = "Map of S3 bucket lifecycle configurations to create"
+  type = map(object({
+    bucket = string
+    rule = list(object({
+      id = optional(string, null)
+      prefix = optional(string, null)
+      tags = optional(map(string), {})
+      enabled = optional(bool, true)
+      
+      abort_incomplete_multipart_upload = optional(object({
+        days_after_initiation = number
+      }), {})
+      
+      expiration = optional(object({
+        date = optional(string, null)
+        days = optional(number, null)
+        expired_object_delete_marker = optional(bool, null)
+      }), {})
+      
+      noncurrent_version_expiration = optional(object({
+        noncurrent_days = number
+        newer_noncurrent_versions = optional(number, null)
+      }), {})
+      
+      noncurrent_version_transition = optional(list(object({
+        noncurrent_days = number
+        storage_class = string
+        newer_noncurrent_versions = optional(number, null)
+      })), [])
+      
+      transition = optional(list(object({
+        date = optional(string, null)
+        days = optional(number, null)
+        storage_class = string
+      })), [])
+      
+      object_size_greater_than = optional(number, null)
+      object_size_less_than = optional(number, null)
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket CORS Configuration
+# ==============================================================================
+
+variable "s3_bucket_cors_configurations" {
+  description = "Map of S3 bucket CORS configurations to create"
+  type = map(object({
+    bucket = string
+    cors_rule = list(object({
+      allowed_headers = optional(list(string), [])
+      allowed_methods = list(string)
+      allowed_origins = list(string)
+      expose_headers = optional(list(string), [])
+      max_age_seconds = optional(number, null)
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Website Configuration
+# ==============================================================================
+
+variable "s3_bucket_website_configurations" {
+  description = "Map of S3 bucket website configurations to create"
+  type = map(object({
+    bucket = string
+    index_document = optional(string, null)
+    error_document = optional(string, null)
+    redirect_all_requests_to = optional(string, null)
+    routing_rules = optional(string, null)
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Object Ownership Controls
+# ==============================================================================
+
+variable "s3_bucket_ownership_controls" {
+  description = "Map of S3 bucket ownership controls to create"
+  type = map(object({
+    bucket = string
+    rule = object({
+      object_ownership = string
+    })
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Intelligent Tiering
+# ==============================================================================
+
+variable "s3_bucket_intelligent_tiering_configurations" {
+  description = "Map of S3 bucket intelligent tiering configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    status = optional(string, "Enabled")
+    tiering = list(object({
+      access_tier = string
+      days = number
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Metrics
+# ==============================================================================
+
+variable "s3_bucket_metric_configurations" {
+  description = "Map of S3 bucket metric configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    filter = optional(object({
+      prefix = optional(string, null)
+      tags = optional(map(string), {})
+    }), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Inventory
+# ==============================================================================
+
+variable "s3_bucket_inventory_configurations" {
+  description = "Map of S3 bucket inventory configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    enabled = optional(bool, true)
+    included_object_versions = optional(string, "Current")
+    schedule = object({
+      frequency = string
+    })
+    destination = object({
+      bucket = object({
+        format = string
+        bucket_arn = string
+        account_id = optional(string, null)
+        prefix = optional(string, null)
+        encryption = optional(object({
+          sse_kms = optional(object({
+            key_id = string
+          }), {})
+          sse_s3 = optional(object({}), {})
+        }), {})
+      })
+    })
+    optional_fields = optional(list(string), [])
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Object Lock Configuration
+# ==============================================================================
+
+variable "s3_bucket_object_lock_configurations" {
+  description = "Map of S3 bucket object lock configurations to create"
+  type = map(object({
+    bucket = string
+    object_lock_enabled = optional(string, "Enabled")
+    rule = optional(object({
+      default_retention = object({
+        mode = string
+        days = optional(number, null)
+        years = optional(number, null)
+      })
+    }), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Replication Configuration
+# ==============================================================================
+
+variable "s3_bucket_replication_configurations" {
+  description = "Map of S3 bucket replication configurations to create"
+  type = map(object({
+    bucket = string
+    role = string
+    rules = list(object({
+      id = optional(string, null)
+      status = optional(string, "Enabled")
+      priority = optional(number, null)
+      delete_marker_replication = optional(object({
+        status = string
+      }), {})
+      destination = object({
+        bucket = string
+        storage_class = optional(string, null)
+        replica_kms_key_id = optional(string, null)
+        account_id = optional(string, null)
+        access_control_translation = optional(object({
+          owner = string
+        }), {})
+        replication_time = optional(object({
+          status = string
+          minutes = optional(number, null)
+        }), {})
+        metrics = optional(object({
+          status = string
+          minutes = optional(number, null)
+        }), {})
+      })
+      source_selection_criteria = optional(object({
+        sse_kms_encrypted_objects = optional(object({
+          status = string
+        }), {})
+      }), {})
+      filter = optional(object({
+        prefix = optional(string, null)
+        tags = optional(map(string), {})
+      }), {})
+    }))
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Request Payer
+# ==============================================================================
+
+variable "s3_bucket_request_payers" {
+  description = "Map of S3 bucket request payers to create"
+  type = map(object({
+    bucket = string
+    request_payer = string
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Accelerate Configuration
+# ==============================================================================
+
+variable "s3_bucket_accelerate_configurations" {
+  description = "Map of S3 bucket accelerate configurations to create"
+  type = map(object({
+    bucket = string
+    status = string
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Analytics Configuration
+# ==============================================================================
+
+variable "s3_bucket_analytics_configurations" {
+  description = "Map of S3 bucket analytics configurations to create"
+  type = map(object({
+    bucket = string
+    name = string
+    filter = optional(object({
+      prefix = optional(string, null)
+      tags = optional(map(string), {})
+    }), {})
+    storage_class_analysis = optional(object({
+      data_export = optional(object({
+        destination = object({
+          bucket_arn = string
+          bucket_account_id = optional(string, null)
+          format = string
+          prefix = optional(string, null)
+        })
+        output_schema_version = string
+      }), {})
+    }), {})
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Logging
+# ==============================================================================
+
+variable "s3_bucket_loggings" {
+  description = "Map of S3 bucket loggings to create"
+  type = map(object({
+    bucket = string
+    target_bucket = string
+    target_prefix = optional(string, null)
+    target_grant = optional(list(object({
+      grantee = object({
+        id = optional(string, null)
+        type = string
+        uri = optional(string, null)
+        email_address = optional(string, null)
+        display_name = optional(string, null)
+      })
+      permission = string
+    })), [])
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Notification
+# ==============================================================================
+
+variable "s3_bucket_notifications" {
+  description = "Map of S3 bucket notifications to create"
+  type = map(object({
+    bucket = string
+    eventbridge = optional(bool, false)
+    lambda = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      lambda_function_arn = string
+    })), [])
+    queue = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      queue_arn = string
+    })), [])
+    topic = optional(list(object({
+      events = list(string)
+      filter_prefix = optional(string, null)
+      filter_suffix = optional(string, null)
+      id = optional(string, null)
+      topic_arn = string
+    })), [])
+  }))
+  default = {}
+}
+
+# ==============================================================================
+# Enhanced S3 Bucket Object
+# ==============================================================================
+
+variable "s3_bucket_objects" {
+  description = "Map of S3 bucket objects to create"
+  type = map(object({
+    bucket = string
+    key = string
+    source = optional(string, null)
+    content = optional(string, null)
+    content_base64 = optional(string, null)
+    content_type = optional(string, null)
+    content_disposition = optional(string, null)
+    content_encoding = optional(string, null)
+    content_language = optional(string, null)
+    website_redirect = optional(string, null)
+    etag = optional(string, null)
+    force_destroy = optional(bool, false)
+    metadata = optional(map(string), {})
+    object_lock_legal_hold_status = optional(string, null)
+    object_lock_mode = optional(string, null)
+    object_lock_retain_until_date = optional(string, null)
+    server_side_encryption = optional(string, null)
+    source_hash = optional(string, null)
+    storage_class = optional(string, null)
+    tags = optional(map(string), {})
+    kms_key_id = optional(string, null)
+  }))
+  default = {}
+} 
