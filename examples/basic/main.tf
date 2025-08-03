@@ -23,7 +23,7 @@ from datetime import datetime
 
 def handler(event, context):
     """
-    Lambda function handler for S3 event processing
+    Enhanced Lambda function handler for S3 event processing
     """
     print(f"Event received: {json.dumps(event)}")
     
@@ -60,33 +60,107 @@ module "lambda_s3_cloudwatch" {
   module_name = "example-lambda-s3"
   environment = "dev"
 
-  # Lambda function configuration
+  # Enhanced Lambda function configuration
   lambda_function_name = "s3-event-processor"
+  lambda_description   = "Enhanced Lambda function for S3 event processing with comprehensive configuration"
   lambda_runtime       = "python3.11"
   lambda_handler       = "lambda_function.handler"
-  lambda_timeout       = 30
-  lambda_memory_size   = 256
+  lambda_timeout       = 60 # Increased timeout for processing
+  lambda_memory_size   = 512 # Increased memory for better performance
   lambda_source_path   = path.module
+
+  # Enhanced Lambda configuration
+  lambda_architectures = ["x86_64"] # Can be ["arm64"] for cost optimization
+  lambda_publish       = true # Enable versioning
+  
+  # Lambda ephemeral storage configuration
+  lambda_ephemeral_storage = {
+    size = 1024 # 1GB ephemeral storage
+  }
+  
+  # Lambda tracing configuration
+  lambda_tracing_config = {
+    mode = "Active" # Enable X-Ray tracing
+  }
 
   # Lambda environment variables
   lambda_environment_variables = {
     ENVIRONMENT = "development"
     LOG_LEVEL   = "INFO"
+    PROCESSING_TIMEOUT = "30"
+    MAX_RETRIES = "3"
   }
 
-  # S3 bucket configuration
+  # Enhanced S3 bucket configuration
   s3_bucket_name = "example-lambda-s3-bucket-${random_string.bucket_suffix.result}"
+  s3_bucket_force_destroy = true # For testing purposes
   
+  # S3 bucket versioning
+  s3_bucket_versioning = true
+  s3_bucket_versioning_status = "Enabled"
+  
+  # S3 bucket encryption
+  s3_bucket_encryption = true
+  s3_bucket_encryption_algorithm = "AES256"
+  s3_bucket_key_enabled = true
+  
+  # S3 bucket public access block
+  s3_bucket_public_access_block = {
+    block_public_acls       = true
+    block_public_policy     = true
+    ignore_public_acls      = true
+    restrict_public_buckets = true
+  }
+  
+  # S3 bucket lifecycle rules
+  s3_bucket_lifecycle_rules = [
+    {
+      id      = "cleanup-old-versions"
+      enabled = true
+      noncurrent_version_expiration = {
+        noncurrent_days = 30
+      }
+      abort_incomplete_multipart_upload = {
+        days_after_initiation = 7
+      }
+    },
+    {
+      id      = "transition-to-ia"
+      enabled = true
+      transition = [
+        {
+          days          = 90
+          storage_class = "STANDARD_IA"
+        },
+        {
+          days          = 365
+          storage_class = "GLACIER"
+        }
+      ]
+    }
+  ]
+  
+  # S3 bucket CORS configuration
+  s3_bucket_cors_configuration = [
+    {
+      allowed_headers = ["*"]
+      allowed_methods = ["GET", "PUT", "POST", "DELETE"]
+      allowed_origins = ["https://example.com"]
+      expose_headers  = ["ETag"]
+      max_age_seconds = 3000
+    }
+  ]
+
   # Enable S3 event notifications
   enable_s3_event_notification = true
-  s3_event_types               = ["s3:ObjectCreated:*"]
+  s3_event_types               = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
   s3_filter_prefix             = "uploads/"
   s3_filter_suffix             = ".json"
 
-  # CloudWatch configuration
-  cloudwatch_log_retention_days = 7
+  # Enhanced CloudWatch configuration
+  cloudwatch_log_retention_days = 30 # Retain logs for 30 days
 
-  # CloudWatch alarms
+  # Enhanced CloudWatch alarms
   cloudwatch_alarms = [
     {
       name          = "lambda-errors"
@@ -101,6 +175,7 @@ module "lambda_s3_cloudwatch" {
       alarm_actions = []
       ok_actions    = []
       insufficient_data_actions = []
+      treat_missing_data = "notBreaching"
     },
     {
       name          = "lambda-duration"
@@ -110,12 +185,38 @@ module "lambda_s3_cloudwatch" {
       statistic     = "Average"
       period        = 300
       evaluation_periods = 2
-      threshold     = 25000
+      threshold     = 50000 # 50 seconds
       comparison_operator = "GreaterThanThreshold"
       alarm_actions = []
       ok_actions    = []
       insufficient_data_actions = []
+      treat_missing_data = "notBreaching"
+    },
+    {
+      name          = "lambda-throttles"
+      description   = "Lambda function throttles"
+      metric_name   = "Throttles"
+      namespace     = "AWS/Lambda"
+      statistic     = "Sum"
+      period        = 300
+      evaluation_periods = 1
+      threshold     = 1
+      comparison_operator = "GreaterThanThreshold"
+      alarm_actions = []
+      ok_actions    = []
+      insufficient_data_actions = []
+      treat_missing_data = "notBreaching"
     }
+  ]
+
+  # Enhanced IAM configuration
+  lambda_role_description = "Enhanced IAM role for S3 processing Lambda function"
+  lambda_role_path = "/service-roles/"
+  lambda_role_max_session_duration = 7200 # 2 hours
+  
+  # Additional IAM policies
+  lambda_role_policy_arns = [
+    "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
   ]
 
   # Tags
@@ -123,6 +224,8 @@ module "lambda_s3_cloudwatch" {
     Project     = "example"
     Owner       = "devops"
     CostCenter  = "engineering"
+    Environment = "development"
+    ManagedBy   = "terraform"
   }
 }
 

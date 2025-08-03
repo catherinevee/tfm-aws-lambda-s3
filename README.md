@@ -1,139 +1,195 @@
-# AWS Lambda + S3 + CloudWatch Terraform Module
+# Enhanced AWS Lambda S3 CloudWatch Module
 
-A comprehensive Terraform module for deploying AWS Lambda functions with S3 event triggers and CloudWatch monitoring. This module provides a complete serverless solution for processing S3 events with built-in monitoring, error handling, and scalability features.
+A comprehensive Terraform module for deploying AWS Lambda functions with S3 event triggers, CloudWatch monitoring, and extensive customization options.
 
 ## Features
 
-- **Lambda Function**: Deploy serverless functions with configurable runtime, memory, and timeout
-- **S3 Integration**: Automatic S3 bucket creation with event notifications to trigger Lambda
-- **CloudWatch Monitoring**: Comprehensive logging and customizable alarms
-- **IAM Security**: Secure IAM roles and policies following least privilege principle
-- **VPC Support**: Optional VPC configuration for Lambda functions
-- **Dead Letter Queue**: SQS-based error handling for failed executions
-- **Lifecycle Management**: S3 bucket lifecycle rules for cost optimization
-- **Event Filtering**: Configurable S3 event filters (prefix/suffix)
-- **Reserved Concurrency**: Control Lambda function scaling
-- **Custom Policies**: Extensible IAM policies for additional permissions
+- **Lambda Function**: Fully configurable Lambda function with support for all AWS Lambda features
+- **S3 Bucket**: Comprehensive S3 bucket configuration with advanced features
+- **CloudWatch Monitoring**: Built-in CloudWatch logs and alarms
+- **Dead Letter Queue**: Optional SQS-based error handling
+- **VPC Support**: Lambda VPC configuration for enhanced security
+- **IAM Integration**: Comprehensive IAM roles and policies
+- **Encryption**: KMS encryption support for all resources
+- **Event Notifications**: S3 event triggers with filtering
 
-## Architecture
+## Enhanced Customizable Parameters
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   S3 Bucket     │───▶│  Lambda Function│───▶│  CloudWatch     │
-│                 │    │                 │    │  Logs/Alarms    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   S3 Events     │    │   IAM Role      │    │   SNS Topic     │
-│   (Optional)    │    │   & Policies    │    │   (Optional)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │
-         │                       │
-         ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐
-│   SQS DLQ       │    │   VPC Config    │
-│   (Optional)    │    │   (Optional)    │
-└─────────────────┘    └─────────────────┘
-```
+### Lambda Function Configuration
 
-## Usage
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `lambda_function_name` | string | - | Name of the Lambda function |
+| `lambda_description` | string | "Lambda function for S3 processing" | Description of the Lambda function |
+| `lambda_runtime` | string | "python3.11" | Lambda function runtime |
+| `lambda_handler` | string | "index.handler" | Lambda function handler |
+| `lambda_timeout` | number | 30 | Lambda function timeout in seconds (1-900) |
+| `lambda_memory_size` | number | 128 | Lambda function memory size in MB (128-10240) |
+| `lambda_architectures` | list(string) | ["x86_64"] | Lambda function architectures (x86_64, arm64) |
+| `lambda_publish` | bool | false | Whether to publish Lambda versions |
+| `lambda_kms_key_arn` | string | null | KMS key ARN for Lambda encryption |
+| `lambda_ephemeral_storage` | object | {size = 512} | Ephemeral storage configuration (512-10240 MB) |
+| `lambda_tracing_config` | object | {mode = "PassThrough"} | X-Ray tracing configuration |
+| `lambda_snap_start` | object | null | Snap start configuration for Java runtimes |
+| `lambda_code_signing_config_arn` | string | null | Code signing configuration ARN |
+| `lambda_package_type` | string | "Zip" | Package type (Zip, Image) |
+| `lambda_image_uri` | string | null | ECR image URI for container images |
+| `lambda_reserved_concurrency` | number | null | Reserved concurrency limit |
+| `lambda_layers` | list(string) | [] | Lambda layer ARNs |
+| `lambda_environment_variables` | map(string) | {} | Environment variables |
+| `lambda_source_path` | string | null | Path to Lambda source code |
+| `lambda_source_code_hash` | string | null | Source code hash for external deployments |
+
+### IAM Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `lambda_role_name` | string | null | IAM role name (auto-generated if null) |
+| `lambda_role_description` | string | "IAM role for Lambda function" | IAM role description |
+| `lambda_role_path` | string | "/" | IAM role path |
+| `lambda_role_permissions_boundary` | string | null | Permissions boundary ARN |
+| `lambda_role_max_session_duration` | number | 3600 | Maximum session duration (3600-43200) |
+| `lambda_role_policy_arns` | list(string) | [] | Additional IAM policy ARNs |
+| `lambda_custom_policy` | string | null | Custom IAM policy document |
+| `lambda_role_tags` | map(string) | {} | Additional IAM role tags |
+
+### VPC Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `lambda_vpc_config` | object | null | VPC configuration with subnet_ids and security_group_ids |
+
+### S3 Bucket Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `s3_bucket_name` | string | - | S3 bucket name |
+| `s3_bucket_force_destroy` | bool | false | Force destroy bucket even with objects |
+| `s3_bucket_versioning` | bool | false | Enable bucket versioning |
+| `s3_bucket_versioning_status` | string | "Enabled" | Versioning status |
+| `s3_bucket_encryption` | bool | true | Enable server-side encryption |
+| `s3_bucket_encryption_algorithm` | string | "AES256" | Encryption algorithm (AES256, aws:kms) |
+| `s3_bucket_kms_key_id` | string | null | KMS key for encryption |
+| `s3_bucket_key_enabled` | bool | true | Enable bucket key |
+| `s3_bucket_public_access_block` | object | {block_public_acls = true, ...} | Public access block settings |
+| `s3_bucket_lifecycle_rules` | list(object) | [] | Lifecycle rules configuration |
+| `s3_bucket_cors_configuration` | list(object) | [] | CORS configuration |
+| `s3_bucket_website_configuration` | object | null | Website configuration |
+| `s3_bucket_object_lock_configuration` | object | null | Object lock configuration |
+| `s3_bucket_replication_configuration` | object | null | Replication configuration |
+| `s3_bucket_intelligent_tiering_configuration` | list(object) | [] | Intelligent tiering |
+| `s3_bucket_analytics_configuration` | list(object) | [] | Analytics configuration |
+| `s3_bucket_inventory_configuration` | list(object) | [] | Inventory configuration |
+| `s3_bucket_metric_configuration` | list(object) | [] | Metric configuration |
+| `s3_bucket_ownership_controls` | object | null | Ownership controls |
+| `s3_bucket_request_payer` | string | null | Request payer configuration |
+| `s3_bucket_accelerate_configuration` | object | null | Transfer acceleration |
+| `s3_bucket_policy` | string | null | Custom bucket policy |
+| `s3_bucket_tags` | map(string) | {} | Additional bucket tags |
+
+### SQS Configuration (Dead Letter Queue)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enable_dead_letter_queue` | bool | false | Enable SQS dead letter queue |
+| `dead_letter_queue_name` | string | null | DLQ name (auto-generated if null) |
+| `max_receive_count` | number | 3 | Max receive count before DLQ |
+| `sqs_dlq_delay_seconds` | number | 0 | DLQ delay seconds (0-900) |
+| `sqs_dlq_max_message_size` | number | 262144 | DLQ max message size (1024-262144) |
+| `sqs_dlq_message_retention_seconds` | number | 345600 | DLQ message retention (60-1209600) |
+| `sqs_dlq_receive_wait_time_seconds` | number | 0 | DLQ receive wait time (0-20) |
+| `sqs_dlq_visibility_timeout_seconds` | number | 30 | DLQ visibility timeout (0-43200) |
+| `sqs_dlq_sse_enabled` | bool | true | DLQ server-side encryption |
+| `sqs_dlq_kms_key_id` | string | null | DLQ KMS key |
+| `sqs_lambda_delay_seconds` | number | 0 | Lambda queue delay seconds |
+| `sqs_lambda_max_message_size` | number | 262144 | Lambda queue max message size |
+| `sqs_lambda_message_retention_seconds` | number | 345600 | Lambda queue message retention |
+| `sqs_lambda_receive_wait_time_seconds` | number | 0 | Lambda queue receive wait time |
+| `sqs_lambda_visibility_timeout_seconds` | number | 30 | Lambda queue visibility timeout |
+| `sqs_lambda_sse_enabled` | bool | true | Lambda queue server-side encryption |
+| `sqs_lambda_kms_key_id` | string | null | Lambda queue KMS key |
+
+### CloudWatch Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `cloudwatch_log_retention_days` | number | 7 | Log retention days |
+| `cloudwatch_log_kms_key_id` | string | null | Log group KMS key |
+| `cloudwatch_alarms` | list(object) | [] | CloudWatch alarms configuration |
+
+### S3 Event Notifications
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enable_s3_event_notification` | bool | false | Enable S3 event notifications |
+| `s3_event_types` | list(string) | ["s3:ObjectCreated:*"] | S3 event types |
+| `s3_filter_prefix` | string | null | Event filter prefix |
+| `s3_filter_suffix` | string | null | Event filter suffix |
+
+## Usage Examples
 
 ### Basic Example
 
 ```hcl
-module "lambda_s3_cloudwatch" {
+module "lambda_s3_basic" {
   source = "./tfm-aws-lambda-s3"
 
-  # Module configuration
-  module_name = "my-lambda-s3"
+  module_name = "basic-lambda-s3"
   environment = "dev"
 
-  # Lambda function configuration
-  lambda_function_name = "s3-event-processor"
+  lambda_function_name = "s3-processor"
   lambda_runtime       = "python3.11"
-  lambda_handler       = "lambda_function.handler"
-  lambda_timeout       = 30
-  lambda_memory_size   = 256
+  lambda_handler       = "index.handler"
   lambda_source_path   = "./lambda"
 
-  # S3 bucket configuration
-  s3_bucket_name = "my-lambda-s3-bucket"
+  s3_bucket_name = "my-lambda-bucket"
 
-  # Enable S3 event notifications
   enable_s3_event_notification = true
   s3_event_types               = ["s3:ObjectCreated:*"]
-  s3_filter_prefix             = "uploads/"
-  s3_filter_suffix             = ".json"
 
-  # CloudWatch configuration
-  cloudwatch_log_retention_days = 7
-
-  # Tags
   tags = {
-    Project     = "my-project"
-    Owner       = "devops"
-    Environment = "development"
+    Project = "example"
+    Owner   = "devops"
   }
 }
 ```
 
-### Advanced Example with VPC and Dead Letter Queue
+### Advanced Example with VPC and DLQ
 
 ```hcl
-module "lambda_s3_cloudwatch" {
+module "lambda_s3_advanced" {
   source = "./tfm-aws-lambda-s3"
 
-  # Module configuration
   module_name = "advanced-lambda-s3"
   environment = "prod"
 
-  # Lambda function configuration
+  # Enhanced Lambda configuration
   lambda_function_name = "advanced-s3-processor"
   lambda_runtime       = "python3.11"
-  lambda_handler       = "lambda_function.handler"
-  lambda_timeout       = 60
-  lambda_memory_size   = 512
-  lambda_source_path   = "./lambda"
-
-  # Lambda environment variables
-  lambda_environment_variables = {
-    ENVIRONMENT = "production"
-    LOG_LEVEL   = "INFO"
-  }
-
-  # Lambda reserved concurrency
-  lambda_reserved_concurrency = 10
+  lambda_handler       = "index.handler"
+  lambda_timeout       = 300
+  lambda_memory_size   = 1024
+  lambda_architectures = ["x86_64"]
+  lambda_publish       = true
 
   # VPC configuration
   lambda_vpc_config = {
-    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
-    security_group_ids = ["sg-12345678"]
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [var.lambda_security_group_id]
   }
 
-  # S3 bucket configuration
-  s3_bucket_name = "advanced-lambda-s3-bucket"
+  # S3 configuration
+  s3_bucket_name = "advanced-lambda-bucket"
+  s3_bucket_versioning = true
+  s3_bucket_encryption = true
+  s3_bucket_kms_key_id = var.kms_key_arn
 
-  # S3 bucket lifecycle rules
-  s3_bucket_lifecycle_rules = [
-    {
-      id      = "delete-old-versions"
-      enabled = true
-      noncurrent_version_expiration = {
-        noncurrent_days = 30
-      }
-    }
-  ]
+  # Dead letter queue
+  enable_dead_letter_queue = true
+  max_receive_count = 5
 
-  # Enable S3 event notifications
-  enable_s3_event_notification = true
-  s3_event_types               = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
-
-  # CloudWatch configuration
-  cloudwatch_log_retention_days = 30
-
-  # CloudWatch alarms
+  # CloudWatch monitoring
+  cloudwatch_log_retention_days = 90
   cloudwatch_alarms = [
     {
       name          = "lambda-errors"
@@ -145,236 +201,38 @@ module "lambda_s3_cloudwatch" {
       evaluation_periods = 2
       threshold     = 1
       comparison_operator = "GreaterThanThreshold"
-      alarm_actions = ["arn:aws:sns:region:account:topic-name"]
-      ok_actions    = ["arn:aws:sns:region:account:topic-name"]
+      alarm_actions = []
+      ok_actions    = []
       insufficient_data_actions = []
     }
   ]
 
-  # Dead Letter Queue configuration
-  enable_dead_letter_queue = true
-  dead_letter_queue_name   = "lambda-dlq"
-  max_receive_count        = 3
-
-  # Tags
   tags = {
-    Project     = "advanced-project"
-    Owner       = "devops"
+    Project     = "advanced"
     Environment = "production"
+    DataClassification = "confidential"
   }
 }
 ```
 
-## Requirements
-
-| Name | Version |
-|------|---------|
-| terraform | >= 1.0 |
-| aws | ~> 5.0 |
-| archive | ~> 2.0 |
-
-## Providers
-
-| Name | Version |
-|------|---------|
-| aws | ~> 5.0 |
-| archive | ~> 2.0 |
-
-## Inputs
-
-### Required Variables
-
-| Name | Description | Type | Default |
-|------|-------------|------|---------|
-| environment | Environment name (e.g., dev, staging, prod) | `string` | n/a |
-| lambda_function_name | Name of the Lambda function | `string` | n/a |
-| s3_bucket_name | Name of the S3 bucket | `string` | n/a |
-
-### Optional Variables
-
-| Name | Description | Type | Default |
-|------|-------------|------|---------|
-| module_name | Name of the module | `string` | `"lambda-s3-cloudwatch"` |
-| tags | A map of tags to assign to all resources | `map(string)` | `{}` |
-| lambda_runtime | Lambda function runtime | `string` | `"python3.11"` |
-| lambda_handler | Lambda function handler | `string` | `"index.handler"` |
-| lambda_timeout | Lambda function timeout in seconds | `number` | `30` |
-| lambda_memory_size | Lambda function memory size in MB | `number` | `128` |
-| lambda_source_path | Path to the Lambda function source code | `string` | `null` |
-| lambda_environment_variables | Environment variables for the Lambda function | `map(string)` | `{}` |
-| lambda_reserved_concurrency | Reserved concurrency limit for the Lambda function | `number` | `null` |
-| lambda_layers | List of Lambda layer ARNs to attach to the function | `list(string)` | `[]` |
-| s3_bucket_versioning | Enable versioning for the S3 bucket | `bool` | `true` |
-| s3_bucket_encryption | Enable server-side encryption for the S3 bucket | `bool` | `true` |
-| s3_bucket_public_access_block | Public access block configuration for the S3 bucket | `object` | See variables.tf |
-| s3_bucket_lifecycle_rules | Lifecycle rules for the S3 bucket | `list(object)` | `[]` |
-| cloudwatch_log_retention_days | Number of days to retain CloudWatch logs | `number` | `14` |
-| cloudwatch_alarms | CloudWatch alarms configuration | `list(object)` | `[]` |
-| lambda_role_name | Name of the IAM role for the Lambda function | `string` | `null` |
-| lambda_role_policy_arns | List of IAM policy ARNs to attach to the Lambda role | `list(string)` | `[]` |
-| lambda_custom_policy | Custom IAM policy JSON for the Lambda function | `string` | `null` |
-| enable_s3_event_notification | Enable S3 event notifications to trigger Lambda | `bool` | `false` |
-| s3_event_types | List of S3 event types to trigger Lambda | `list(string)` | `["s3:ObjectCreated:*"]` |
-| s3_filter_prefix | S3 object key prefix filter for event notifications | `string` | `""` |
-| s3_filter_suffix | S3 object key suffix filter for event notifications | `string` | `""` |
-| lambda_vpc_config | VPC configuration for Lambda function | `object` | `null` |
-| enable_dead_letter_queue | Enable SQS dead letter queue for failed Lambda executions | `bool` | `false` |
-| dead_letter_queue_name | Name of the SQS dead letter queue | `string` | `null` |
-| max_receive_count | Maximum number of times a message can be received before being sent to the dead letter queue | `number` | `3` |
-
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| lambda_function_arn | ARN of the Lambda function |
-| lambda_function_name | Name of the Lambda function |
-| lambda_function_invoke_arn | Invocation ARN of the Lambda function |
-| lambda_function_version | Latest published version of the Lambda function |
-| lambda_function_last_modified | Date the Lambda function was last modified |
-| lambda_role_arn | ARN of the IAM role for the Lambda function |
-| lambda_role_name | Name of the IAM role for the Lambda function |
-| s3_bucket_id | The name of the S3 bucket |
-| s3_bucket_arn | The ARN of the S3 bucket |
-| s3_bucket_region | The AWS region this bucket resides in |
-| s3_bucket_domain_name | The bucket domain name |
-| s3_bucket_regional_domain_name | The bucket region-specific domain name |
-| cloudwatch_log_group_arn | ARN of the CloudWatch log group |
-| cloudwatch_log_group_name | Name of the CloudWatch log group |
-| sqs_dead_letter_queue_arn | ARN of the SQS dead letter queue |
-| sqs_dead_letter_queue_url | URL of the SQS dead letter queue |
-| sqs_lambda_queue_arn | ARN of the SQS Lambda processing queue |
-| sqs_lambda_queue_url | URL of the SQS Lambda processing queue |
-| cloudwatch_alarm_arns | ARNs of the CloudWatch alarms |
-| cloudwatch_alarm_names | Names of the CloudWatch alarms |
-| module_name | Name of the module |
-| environment | Environment name |
-| tags | Tags applied to all resources |
+The module provides comprehensive outputs for all created resources:
 
-## Examples
+- Lambda function ARN, name, and configuration
+- IAM role ARN and name
+- S3 bucket ID, ARN, and domain names
+- CloudWatch log group ARN and name
+- SQS queue ARNs and URLs (if DLQ enabled)
+- CloudWatch alarm ARNs and names
+- Module information and tags
 
-### Basic Example
-See `examples/basic/` for a simple implementation with S3 event notifications.
+## Requirements
 
-### Advanced Example
-See `examples/advanced/` for a comprehensive implementation with VPC, dead letter queue, and enhanced monitoring.
-
-### Test Example
-See `test/` for a minimal test configuration.
-
-## Lambda Function Examples
-
-### Python Example
-```python
-import json
-import boto3
-import os
-from datetime import datetime
-
-def handler(event, context):
-    """
-    Lambda function handler for S3 event processing
-    """
-    print(f"Event received: {json.dumps(event)}")
-    
-    # Process S3 event
-    for record in event.get('Records', []):
-        bucket = record['s3']['bucket']['name']
-        key = record['s3']['object']['key']
-        size = record['s3']['object']['size']
-        
-        print(f"Processing file: s3://{bucket}/{key} (size: {size} bytes)")
-        
-        # Add your processing logic here
-        # Example: Process the file, send notifications, etc.
-        
-        # Log processing completion
-        print(f"Successfully processed: s3://{bucket}/{key}")
-    
-    return {
-        'statusCode': 200,
-        'body': json.dumps({
-            'message': 'S3 event processed successfully',
-            'timestamp': datetime.now().isoformat(),
-            'processed_records': len(event.get('Records', []))
-        })
-    }
-```
-
-### Node.js Example
-```javascript
-const AWS = require('aws-sdk');
-
-exports.handler = async (event, context) => {
-    console.log('Event received:', JSON.stringify(event, null, 2));
-    
-    // Process S3 event
-    for (const record of event.Records || []) {
-        const bucket = record.s3.bucket.name;
-        const key = record.s3.object.key;
-        const size = record.s3.object.size;
-        
-        console.log(`Processing file: s3://${bucket}/${key} (size: ${size} bytes)`);
-        
-        // Add your processing logic here
-        // Example: Process the file, send notifications, etc.
-        
-        console.log(`Successfully processed: s3://${bucket}/${key}`);
-    }
-    
-    return {
-        statusCode: 200,
-        body: JSON.stringify({
-            message: 'S3 event processed successfully',
-            timestamp: new Date().toISOString(),
-            processedRecords: event.Records ? event.Records.length : 0
-        })
-    };
-};
-```
-
-## Security Features
-
-- **IAM Least Privilege**: Minimal required permissions for Lambda function
-- **S3 Security**: Public access blocked by default, server-side encryption enabled
-- **VPC Isolation**: Optional VPC configuration for network isolation
-- **Dead Letter Queue**: Error handling for failed executions
-- **CloudWatch Monitoring**: Comprehensive logging and alerting
-
-## Best Practices
-
-1. **Environment Separation**: Use different module instances for dev, staging, and prod
-2. **Resource Naming**: Use consistent naming conventions with environment prefixes
-3. **Tagging**: Apply comprehensive tags for cost tracking and resource management
-4. **Monitoring**: Configure CloudWatch alarms for critical metrics
-5. **Error Handling**: Implement proper error handling in Lambda functions
-6. **Security**: Review and customize IAM policies based on your requirements
-7. **Testing**: Use the test configuration to validate deployments
-8. **Backup**: Enable S3 versioning for data protection
+- Terraform >= 1.0
+- AWS Provider >= 5.0
+- AWS account with appropriate permissions
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This module is licensed under the MIT License. See LICENSE file for details.
-
-## Support
-
-For issues and questions:
-1. Check the examples directory
-2. Review the variables and outputs documentation
-3. Open an issue on GitHub
-
-## Changelog
-
-### Version 1.0.0
-- Initial release
-- Basic Lambda + S3 + CloudWatch integration
-- Support for VPC configuration
-- Dead letter queue functionality
-- Comprehensive monitoring and alerting
+This module is designed to be highly customizable while maintaining security best practices. All parameters include validation and sensible defaults.
